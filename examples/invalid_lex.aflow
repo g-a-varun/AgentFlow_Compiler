@@ -1,0 +1,7 @@
+workflow BrokenLex {
+    state Start entry {
+        fee = 5 # 3;
+    }
+    state Done exit;
+    transition Start -> Done;
+}

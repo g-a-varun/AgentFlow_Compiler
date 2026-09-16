@@ -1,0 +1,5 @@
+workflow BrokenSemantic {
+    state Start entry;
+    state Island;
+    transition Start -> Nowhere;
+}

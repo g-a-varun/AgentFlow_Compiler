@@ -1,0 +1,6 @@
+workflow BrokenParse {
+    tool Check() -> bool
+    state Start entry;
+    state Done exit;
+    transition Start -> Done;
+}

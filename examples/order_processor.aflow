@@ -1,0 +1,31 @@
+workflow OrderProcessor {
+    tool CheckInventory(sku: string) -> bool;
+    tool ChargeCard(amount: number) -> bool;
+    tool SendEmail(to: string) -> void;
+
+    agent InventoryAgent uses CheckInventory;
+    agent PaymentAgent uses ChargeCard;
+    agent NotifierAgent uses SendEmail;
+
+    state Start entry;
+    state CheckStock;
+    state Charge {
+        fee = 2 + 3;
+        total = 100;
+        result = call PaymentAgent(total);
+    }
+    state Notify;
+    state Failed;
+    state Done exit;
+
+    transition Start -> CheckStock;
+    transition CheckStock -> Charge on success;
+    transition CheckStock -> Failed on failure;
+    transition Charge -> Notify on success;
+    transition Charge -> Failed on failure;
+    transition Notify -> Done;
+    transition Failed -> Done;
+
+    bind CheckStock : InventoryAgent;
+    bind Notify : NotifierAgent;
+}
