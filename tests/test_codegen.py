@@ -3,7 +3,7 @@
 # Generates LangGraph-style Python from the example workflow's optimized
 # IR, checks that the result is valid Python via ast.parse and compile,
 # checks specific structural pieces are present, and writes the
-# generated file to examples/order_processor_generated.py as evidence.
+# generated file to a temp path (a committed copy lives in examples/).
 #
 # Run from the project root:  python tests/test_codegen.py
 
@@ -84,16 +84,16 @@ def main():
     )
     print("PASS: constant folding is visible in generated code")
 
-    # 6. write the artifact to examples/
-    out_path = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "examples",
-        "order_processor_generated.py",
-    )
+    # 6. write the artifact to a throwaway temp file. A committed copy of
+    #    this output lives at examples/order_processor_generated.py as
+    #    evidence; the test deliberately does NOT overwrite it, so running
+    #    the suite never dirties the working tree.
+    import tempfile
+
+    out_path = os.path.join(tempfile.gettempdir(), "order_processor_generated.py")
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(code)
-    print("wrote:", os.path.abspath(out_path))
+    print("wrote (temp):", out_path)
 
 
 if __name__ == "__main__":

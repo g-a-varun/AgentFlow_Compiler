@@ -125,11 +125,16 @@ brace). This matches the example workflow. The alternative is that a
 one of the two grammar bugs found during verification.
 
 **Bounded outcome labels.** Transition conditions are `on <id>` where the
-id is a bare name like `success` or `failure`. There is no general boolean
-expression: the analyzer caps each state at two conditioned transitions
-(success/failure) and checks the state has a way to resolve a boolean
-outcome (a bind to a bool-returning tool, or an action block ending in a
-bool-returning call).
+id is a bare name. There is no general boolean expression. The grammar
+accepts any identifier after `on`, but the semantic analyzer enforces the
+real rule: a conditioned transition must route on `success` or `failure`
+and no other label, each outcome may be used at most once, a state may not
+mix a conditioned transition with an unconditioned one, and a state may
+have at most one unconditioned transition. It also checks that a state
+with a conditioned transition can actually resolve a boolean outcome (a
+bind to a bool-returning tool, or an action block ending in a
+bool-returning call). Anything else is reported as an error instead of
+producing a transition that can never be taken.
 
 **Not in the grammar (deliberate cuts).**
 

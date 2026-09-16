@@ -1,1 +1,1 @@
-﻿# AgentFlow compiler — no external dependencies; pure Python 3.10+
+# AgentFlow compiler — no external dependencies; pure Python 3.10+

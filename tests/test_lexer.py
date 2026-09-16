@@ -43,6 +43,17 @@ def main():
     for tok in tokenize(src):
         print(tok)
 
+    print()
+    print("--- keyword case-sensitivity test ---")
+    # PascalCase words that happen to equal a keyword must lex as ID, not
+    # as the keyword, so states can be named `On`, `Exit`, `State`, etc.
+    kinds = {t.value: t.type for t in tokenize("workflow W { state On; state Exit exit; }")}
+    assert kinds["On"] == "ID", "expected On to lex as ID, got %s" % kinds["On"]
+    assert kinds["Exit"] == "ID", "expected Exit to lex as ID, got %s" % kinds["Exit"]
+    assert kinds["exit"] == "EXIT", "expected lowercase exit to stay a keyword"
+    assert kinds["workflow"] == "WORKFLOW", "expected lowercase workflow to stay a keyword"
+    print("PASS: PascalCase On/Exit lex as ID; lowercase keywords still match")
+
 
 if __name__ == "__main__":
     main()

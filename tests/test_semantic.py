@@ -201,23 +201,100 @@ workflow W {
     "'Trap' has no outgoing transitions",
 )
 
-# ---- transition cap ----
+# ---- transition consistency ----
 expect_error(
-    "more than two conditioned transitions",
+    "more than one unconditioned transition from a state",
+    """
+workflow W {
+    state S entry;
+    state A;
+    state B exit;
+    transition S -> A;
+    transition S -> B;
+    transition A -> B;
+}
+""",
+    "more than one unconditioned transition",
+)
+
+expect_error(
+    "mixing a conditioned and an unconditioned transition",
     """
 workflow W {
     tool T() -> bool;
     agent A uses T;
     state S entry { r = call A(); }
     state X;
-    state Y;
-    state Z exit;
-    transition S -> X on a;
-    transition S -> Y on b;
-    transition S -> Z on c;
+    state Done exit;
+    transition S -> X on success;
+    transition S -> Done;
+    transition X -> Done;
 }
 """,
-    "at most 2 are allowed",
+    "mixes a conditioned transition with an unconditioned one",
+)
+
+expect_error(
+    "conditioned transition on an unknown outcome label",
+    """
+workflow W {
+    tool T() -> bool;
+    agent A uses T;
+    state S entry { r = call A(); }
+    state Done exit;
+    transition S -> Done on retry;
+}
+""",
+    "unknown outcome 'retry'",
+)
+
+expect_error(
+    "two transitions on the same outcome label",
+    """
+workflow W {
+    tool T() -> bool;
+    agent A uses T;
+    state S entry { r = call A(); }
+    state X;
+    state Y exit;
+    transition S -> X on success;
+    transition S -> Y on success;
+    transition X -> Y;
+}
+""",
+    "more than one transition on 'success'",
+)
+
+# ---- duplicate tool parameter ----
+expect_error(
+    "tool with two parameters of the same name",
+    """
+workflow W {
+    tool T(x: number, x: bool) -> void;
+    agent A uses T;
+    state S entry;
+    state Done exit;
+    transition S -> Done;
+    bind S : A;
+}
+""",
+    "duplicate parameter 'x'",
+)
+
+# ---- a state that legitimately routes on both success and failure ----
+expect_clean(
+    "success and failure outcomes together are allowed",
+    """
+workflow W {
+    tool T() -> bool;
+    agent A uses T;
+    state S entry { r = call A(); }
+    state Ok exit;
+    state Bad exit;
+    transition S -> Ok on success;
+    transition S -> Bad on failure;
+}
+""",
 )
 
 # ---- bind / action-block exclusivity ----
@@ -305,7 +382,7 @@ workflow W {
         r = call A();
     }
     state Done exit;
-    transition S -> Done on ok;
+    transition S -> Done on success;
 }
 """,
     "expects 1 argument(s), got 0",
@@ -322,7 +399,7 @@ workflow W {
         r = call A(n);
     }
     state Done exit;
-    transition S -> Done on ok;
+    transition S -> Done on success;
 }
 """,
     "expects bool, got number",
@@ -340,7 +417,7 @@ workflow W {
         x = call A();
     }
     state Done exit;
-    transition S -> Done on ok;
+    transition S -> Done on success;
 }
 """,
     "cannot reassign it as bool",

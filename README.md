@@ -25,11 +25,10 @@ This is the BCSE307P Compiler Design Laboratory project.
       codegen_langgraph.py   IR -> LangGraph-style Python
       __main__.py       CLI entry point
 
-    examples/           sample .aflow files (valid + three broken ones)
+    examples/           sample .aflow files (valid + four broken ones)
     tests/              one test file per compiler stage
-    scripts/            grammar_verify.py, smoke_test.py
-    docs/               grammar.md, design.md
-    reports/            phase reports
+    scripts/            grammar_verify.py, smoke_test.py, run_demo.py
+    docs/               grammar.md, design.md, phase_notes.md
 
 ## Running
 
@@ -85,6 +84,20 @@ Options:
         +--> codegen_langgraph -> Python (validated via ast.parse)
         |
         +--> interpreter       -> mocked-agent execution with trace
+
+## Language rules worth knowing
+
+A few rules the compiler enforces that are easy to trip over:
+
+- **Keywords are case-sensitive and lowercase.** `workflow`, `state`, `on`,
+  `entry`, etc. are only keywords when written in lowercase, so a state,
+  tool, or agent can be named `On`, `Exit`, `State`, or any other
+  PascalCase word without colliding with a keyword.
+- **Transitions out of a state must be unambiguous.** A state may have at
+  most one unconditioned transition, and it may not mix an unconditioned
+  transition with conditioned ones. Conditioned transitions route only on
+  `success` or `failure`, and each outcome may appear at most once. Any
+  other shape is a semantic error rather than a silently dropped edge.
 
 ## No external dependencies
 

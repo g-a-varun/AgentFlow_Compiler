@@ -1,0 +1,17 @@
+workflow BrokenTransition {
+    tool Check() -> bool;
+    agent Checker uses Check;
+
+    state Start entry;
+    state Retry;
+    state Done exit;
+
+    bind Start : Checker;
+
+    // Start mixes a conditioned outcome with a plain transition -- the
+    // analyzer rejects this because the unconditioned edge could never be
+    // taken once an outcome routes the state.
+    transition Start -> Done on success;
+    transition Start -> Retry;
+    transition Retry -> Done;
+}

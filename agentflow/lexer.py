@@ -96,11 +96,12 @@ def tokenize(source):
             while j < n and (source[j].isalnum() or source[j] == "_"):
                 j += 1
             word = source[i:j]
-            lower_word = word.lower()
-            if lower_word in KEYWORDS:
-                token_type = KEYWORDS[lower_word]
-            else:
-                token_type = "ID"
+            # Keywords are matched case-sensitively: every entry in KEYWORDS
+            # is lowercase, so only an exactly-lowercase word is a keyword.
+            # This lets PascalCase names like `Exit`, `On`, or `State` be used
+            # as state/tool/agent identifiers instead of colliding with a
+            # keyword and producing a confusing parse error.
+            token_type = KEYWORDS.get(word, "ID")
             tokens.append(Token(token_type, word, start_line, start_col))
             col += j - i
             i = j

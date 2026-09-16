@@ -108,6 +108,36 @@ the second backend the report promises.
   pieces present, optimizer effects visible in the output.
 - `test_end_to_end.py`: the whole pipeline in one test.
 
+
+## Phase 4 — hardening and edge cases
+
+A pass over the whole pipeline hunting for inputs the compiler accepted
+but should not have, or rejected with a confusing message. Each item below
+is a real case that was reproduced, then fixed, then covered by a test.
+
+- **Silently-dropped transitions.** IR generation used to take the first
+  unconditioned transition out of a state and ignore any others, and if a
+  state mixed a conditioned outcome with an unconditioned edge, the
+  unconditioned edge simply vanished. In one case two unconditioned edges
+  turned a workflow into an infinite loop with no diagnostic. The semantic
+  analyzer now rejects: more than one unconditioned transition per state,
+  a mix of conditioned and unconditioned transitions, an outcome label
+  other than `success`/`failure`, and a repeated outcome label. This
+  replaces the earlier "at most two conditioned transitions" cap, which
+  those richer rules subsume.
+- **Keyword case-collision.** The lexer lower-cased each word before
+  looking it up, so a state named `On`, `Exit`, or `State` was tokenized
+  as a keyword and produced an `unexpected` parse error. Keyword matching
+  is now case-sensitive (all keywords are lowercase), so PascalCase names
+  are free to use.
+- **Duplicate tool parameters.** `tool T(x: number, x: bool)` was accepted
+  silently; it is now a semantic error.
+- **Repo hygiene.** Stripped a UTF-8 BOM from `.gitignore` and
+  `requirements.txt`, added a `.gitattributes` that pins line endings to
+  LF, corrected the layout section of the README, and stopped the codegen
+  test from overwriting the committed generated example (it writes to a
+  temp file now, so running the suite no longer dirties the tree).
+
 ## What is not done (deliberate, documented cuts)
 
 - Nested `if` inside action blocks. The keyword is reserved in the

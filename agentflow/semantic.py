@@ -46,7 +46,7 @@ class SemanticAnalyzer:
         self._check_transition_and_bind_targets(program)
         self._check_entry_exit(program)
         self._check_reachability(program)
-        self._check_transition_cap(program)
+        self._check_transition_consistency(program)
         self._check_bind_action_exclusivity(program)
         self._check_outcome_resolution(program)
         self._check_action_blocks(program)
@@ -66,6 +66,17 @@ class SemanticAnalyzer:
                     )
                 else:
                     self.symtab.declare_tool(decl)
+                # a tool's parameters must have distinct names
+                seen_params = set()
+                for param_name, _param_type in decl.params:
+                    if param_name in seen_params:
+                        self._error(
+                            "tool '%s' has a duplicate parameter '%s'"
+                            % (decl.name, param_name),
+                            decl.line,
+                            decl.col,
+                        )
+                    seen_params.add(param_name)
             elif isinstance(decl, AgentDeclNode):
                 if self.symtab.lookup_agent(decl.name):
                     self._error(
@@ -202,17 +213,68 @@ class SemanticAnalyzer:
                         decl.col,
                     )
 
-    def _check_transition_cap(self, program):
+    # the two outcome labels a conditioned transition may route on
+    VALID_OUTCOMES = ("success", "failure")
+
+    def _check_transition_consistency(self, program):
+        """
+        Enforces that the transitions leaving each state form an
+        unambiguous dispatch, so IR generation never has to silently pick
+        one transition and drop the others:
+
+          - at most one unconditioned transition per state;
+          - a state does not mix a conditioned transition with an
+            unconditioned one;
+          - every conditioned transition routes on 'success' or 'failure';
+          - no outcome label is used more than once.
+
+        Any of these, left unchecked, produces a workflow whose behaviour
+        does not match what was written -- a declared transition that can
+        never be taken.
+        """
         for state_name, transitions in self.transitions_by_from.items():
             conditioned = [t for t in transitions if t.condition is not None]
-            if len(conditioned) > 2:
-                extra = conditioned[2]
-                self._error(
-                    "state '%s' has %d conditioned transitions; the outcome is boolean, "
-                    "so at most 2 are allowed" % (state_name, len(conditioned)),
-                    extra.line,
-                    extra.col,
-                )
+            unconditioned = [t for t in transitions if t.condition is None]
+
+            if conditioned and unconditioned:
+                for u in unconditioned:
+                    self._error(
+                        "state '%s' mixes a conditioned transition with an "
+                        "unconditioned one; use either 'on success'/'on failure' "
+                        "outcomes or a single plain transition, not both"
+                        % state_name,
+                        u.line,
+                        u.col,
+                    )
+            elif len(unconditioned) > 1:
+                for extra in unconditioned[1:]:
+                    self._error(
+                        "state '%s' has more than one unconditioned transition; "
+                        "only one is allowed" % state_name,
+                        extra.line,
+                        extra.col,
+                    )
+
+            seen_labels = set()
+            for t in conditioned:
+                if t.condition not in self.VALID_OUTCOMES:
+                    self._error(
+                        "state '%s' has a transition on unknown outcome '%s'; "
+                        "only 'success' and 'failure' are allowed"
+                        % (state_name, t.condition),
+                        t.line,
+                        t.col,
+                    )
+                elif t.condition in seen_labels:
+                    self._error(
+                        "state '%s' has more than one transition on '%s'; "
+                        "each outcome may be used at most once"
+                        % (state_name, t.condition),
+                        t.line,
+                        t.col,
+                    )
+                else:
+                    seen_labels.add(t.condition)
 
     def _check_bind_action_exclusivity(self, program):
         for decl in program.decls:
