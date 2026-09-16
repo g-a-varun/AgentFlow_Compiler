@@ -37,6 +37,10 @@ From the project root:
 
     python -m agentflow examples/order_processor.aflow
 
+Or run the full pipeline end-to-end with a single command:
+
+    python scripts/run_demo.py
+
 Options:
 
     --ast            print the parsed AST
